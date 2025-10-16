@@ -1,3 +1,9 @@
+# === Default Target ===
+default:
+	$(MAKE) clean
+	$(MAKE) flash
+	$(MAKE) clean
+
 # === Configuration ===
 MCU = atmega328p
 F_CPU = 16000000UL
@@ -59,11 +65,9 @@ flash: $(HEX)
 clean:
 ifeq ($(HOST_OS),windows)
 	@if exist $(subst /,\,$(BUILD_DIR)) rmdir /S /Q $(subst /,\,$(BUILD_DIR))
-# del $(BUILD_DIR)\$(TARGET).elf $(BUILD_DIR)\$(TARGET).hex 
-# del /Q $(BUILD_DIR)
 else
 	@rm -rf $(BUILD_DIR)
 endif
 
 
-.PHONY: all flash clean
+.PHONY: default all flash clean
