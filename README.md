@@ -9,6 +9,9 @@
 - make
 
 ## progress log
+2025/10/17
+- Added breathing LED to PB5 of ATmega328P using software PWM and hardware timer.
+
 2025/10/16
 - CMake and Make build systems have been verified to compile successfully on both Windows and Linux platforms.
 - Added hardware timer for delay function.
