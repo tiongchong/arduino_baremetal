@@ -1,33 +1,62 @@
 cmake_minimum_required(VERSION 3.15)
-project(blinky C)
+# Automatically set the project name to the folder name
+get_filename_component(PROJECT_NAME ${CMAKE_CURRENT_SOURCE_DIR} NAME)
+project(${PROJECT_NAME} C)
 
 # === CONFIGURABLE ===
 set(MCU atmega328p)
 set(F_CPU 16000000UL)
-set(BAUD 115200)
-set(AVR_TOOLCHAIN_DIR ${CMAKE_SOURCE_DIR}/../../avr8-gnu-toolchain-linux_x86_64)
+set(TARGET_NAME ${PROJECT_NAME})
 
-# === TOOLCHAIN ===
-set(CMAKE_SYSTEM_NAME Generic)
-set(CMAKE_SYSTEM_PROCESSOR avr)
-set(CMAKE_C_COMPILER ${AVR_TOOLCHAIN_DIR}/bin/avr-gcc)
+
+# === OS DETECTION ===
+if(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Windows")
+    set(IS_WINDOWS TRUE)
+    set(PORT COM19)
+    set(BAUD 57600)
+elseif(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Linux")
+    set(IS_LINUX TRUE)
+    set(PORT /dev/ttyUSB0)
+    set(BAUD 57600)
+else()
+    message(FATAL_ERROR "Unsupported OS: ${CMAKE_HOST_SYSTEM_NAME}")
+endif()
+
+
+# === COMPILER FLAGS ===
 set(CMAKE_C_FLAGS "-mmcu=${MCU} -DF_CPU=${F_CPU} -Os")
+set(CMAKE_EXE_LINKER_FLAGS "-mmcu=${MCU}")
 
-# === FIND ALL .c FILES RECURSIVELY ===
-# Recursively find all C sources, but exclude build directory
-file(GLOB_RECURSE ALL_C_FILES CONFIGURE_DEPENDS *.c)
+if(IS_WINDOWS)
+    set(OBJCOPY "${CMAKE_SOURCE_DIR}/../../avr8-gnu-toolchain-win32_x86_64/bin/avr-objcopy.exe")
+elseif(IS_LINUX)
+    set(OBJCOPY "${CMAKE_SOURCE_DIR}/../../avr8-gnu-toolchain-linux_x86_64/bin/avr-objcopy")
+else()
+    message(FATAL_ERROR "Unsupported OS for setting OBJCOPY")
+endif()
 
-# Filter out files inside build/ folder (adjust if build is inside your source dir)
-list(FILTER ALL_C_FILES EXCLUDE REGEX ".*/build/.*")
 
-set(SRC_FILES ${ALL_C_FILES})
+# === SOURCES ===
+file(GLOB_RECURSE SRC_FILES CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/src/*.c")
+list(FILTER SRC_FILES EXCLUDE REGEX ".*/build/.*")
 
-# === BUILD TARGET ===
-add_executable(blinky.elf ${SRC_FILES})
+# === TARGET ===
+add_executable(${TARGET_NAME}.elf ${SRC_FILES})
 
-# === GENERATE HEX AFTER BUILD ===
-add_custom_command(TARGET blinky.elf POST_BUILD
-    COMMAND ${AVR_TOOLCHAIN_DIR}/bin/avr-objcopy -O ihex -R .eeprom blinky.elf blinky.hex
+# === HEX GENERATION ===
+add_custom_command(TARGET ${TARGET_NAME}.elf POST_BUILD
+    COMMAND ${OBJCOPY} -O ihex -R .eeprom ${TARGET_NAME}.elf ${TARGET_NAME}.hex
     COMMENT "Generating HEX file"
 )
 
+# === FLASH TARGET ===
+add_custom_target(flash
+    COMMAND ${AVRDUDE_PATH}
+        -c arduino
+        -p ${MCU}
+        -P ${PORT}
+        -b ${BAUD}
+        -U flash:w:${TARGET_NAME}.hex
+    DEPENDS ${TARGET_NAME}.hex
+    COMMENT "Flashing the device..."
+)
