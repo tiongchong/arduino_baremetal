@@ -11,6 +11,7 @@
 ## progress log
 2025/10/17
 - Added breathing LED to PB5 of ATmega328P using software PWM and hardware timer.
+- Added content covering core fundamentals of bare-metal C programming.
 
 2025/10/16
 - CMake and Make build systems have been verified to compile successfully on both Windows and Linux platforms.
