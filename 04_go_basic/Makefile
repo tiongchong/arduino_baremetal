@@ -10,8 +10,20 @@ F_CPU = 16000000UL
 BAUD = 57600
 
 # === OS Detection ===
+UNAME_S := $(shell uname -s)
+
 ifeq ($(OS),Windows_NT)
     HOST_OS := windows
+else ifeq ($(UNAME_S),Linux)
+    HOST_OS := linux
+else ifeq ($(UNAME_S),Darwin)
+    HOST_OS := macos
+else
+    $(error Unsupported OS)
+endif
+
+# === OS-Specific Configuration ===
+ifeq ($(HOST_OS),windows)
     PORT := COM19
     TOOLCHAIN_DIR := ../../avr8-gnu-toolchain-win32_x86_64
     CC := $(TOOLCHAIN_DIR)/bin/avr-gcc.exe
@@ -20,10 +32,20 @@ ifeq ($(OS),Windows_NT)
     MKDIR = if not exist $(subst /,\,$1) mkdir $(subst /,\,$1)
     RM = del /Q
     RM_FILE = $(subst /,\,$1)
-else
-    HOST_OS := linux
+
+else ifeq ($(HOST_OS),linux)
     PORT := /dev/ttyUSB0
     TOOLCHAIN_DIR := ../../avr8-gnu-toolchain-linux_x86_64
+    CC := $(TOOLCHAIN_DIR)/bin/avr-gcc
+    OBJCOPY := $(TOOLCHAIN_DIR)/bin/avr-objcopy
+    AVRDUDE := avrdude
+    MKDIR = mkdir -p $1
+    RM = rm -f
+    RM_FILE = $1
+
+else ifeq ($(HOST_OS),macos)
+    PORT := /dev/tty.usbserial-1420
+    TOOLCHAIN_DIR := ../../avr8-gnu-toolchain-darwin_universal
     CC := $(TOOLCHAIN_DIR)/bin/avr-gcc
     OBJCOPY := $(TOOLCHAIN_DIR)/bin/avr-objcopy
     AVRDUDE := avrdude

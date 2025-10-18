@@ -9,6 +9,9 @@
 - make
 
 ## progress log
+2025/10/18
+- Update both CMake and Make build systems to support MacOS
+
 2025/10/17
 - Added breathing LED to PB5 of ATmega328P using software PWM and hardware timer.
 - Added content covering core fundamentals of bare-metal C programming.

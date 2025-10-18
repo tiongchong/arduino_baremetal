@@ -16,11 +16,19 @@ if(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Windows")
     set(PORT COM19)
     set(TOOLCHAIN_DIR ${CMAKE_SOURCE_DIR}/../../avr8-gnu-toolchain-win32_x86_64)
     set(AVRDUDE_PATH ${CMAKE_SOURCE_DIR}/../../avrdude-v8.1-windows-x64/avrdude.exe)
+
 elseif(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Linux")
     set(IS_LINUX TRUE)
     set(PORT /dev/ttyUSB0)
     set(TOOLCHAIN_DIR ${CMAKE_SOURCE_DIR}/../../avr8-gnu-toolchain-linux_x86_64)
-    set(AVRDUDE_PATH avrdude)
+    set(AVRDUDE_PATH avrdude)  # assumes avrdude is in PATH
+
+elseif(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Darwin")
+    set(IS_MAC TRUE)
+    set(PORT /dev/tty.usbserial-1420)  # adjust as needed
+    set(TOOLCHAIN_DIR ${CMAKE_SOURCE_DIR}/../../avr8-gnu-toolchain-darwin_universal)
+    set(AVRDUDE_PATH avrdude)  # assumes installed via Homebrew or in PATH
+
 else()
     message(FATAL_ERROR "Unsupported OS: ${CMAKE_HOST_SYSTEM_NAME}")
 endif()
@@ -91,10 +99,3 @@ add_custom_target(flash
     WORKING_DIRECTORY ${BUILD_DIR}
     COMMENT "Flashing the device..."
 )
-
-# === Optional clean target (CMake built-in already handles this) ===
-# You can run `cmake --build build --target clean` to clean
-
-# === Optional all target (default build) ===
-# Run `cmake --build build` to build all
-
