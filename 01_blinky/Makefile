@@ -10,15 +10,17 @@ F_CPU = 16000000UL
 BAUD = 57600
 
 # === OS Detection ===
-UNAME_S := $(shell uname -s)
 ifeq ($(OS),Windows_NT)
     HOST_OS := windows
-else ifeq ($(UNAME_S),Linux)
-    HOST_OS := linux
-else ifeq ($(UNAME_S),Darwin)
-    HOST_OS := macos
 else
-    $(error Unsupported OS)
+    UNAME_S := $(shell uname -s)
+    ifeq ($(UNAME_S),Linux)
+        HOST_OS := linux
+    else ifeq ($(UNAME_S),Darwin)
+        HOST_OS := macos
+    else
+        $(error Unsupported OS)
+    endif
 endif
 
 # === OS-Specific Configuration ===
