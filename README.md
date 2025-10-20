@@ -1,5 +1,25 @@
 # Arduino baremetal
 
+https://www.vyrian.com/blog/atmega328p-microcontroller-features-pinout-configuration-datasheets/
+
+
+Datasheet : 8-bit AVR Microcontroller with 32K Bytes In-System Programmable Flash 
+
+https://docs.arduino.cc/resources/datasheets/Atmel-42735-8-bit-AVR-Microcontroller-ATmega328-328P_Datasheet.pdf
+
+
+DATASHEET COMPLETE
+
+https://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-7810-Automotive-Microcontrollers-ATmega328P_Datasheet.pdf
+
+
+ATmega328P Memory
+
+https://cookierobotics.com/043/
+
+https://www.sharetechnote.com/html/Arduino_BasicInfo.html
+
+
 ## to compile the project and flash using cmake build system
 - cmake -S . -B build -G Ninja -D CMAKE_TOOLCHAIN_FILE="avr-toolchain.cmake"
 - cmake --build build --clean-first
