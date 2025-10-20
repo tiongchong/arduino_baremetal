@@ -1,9 +1,9 @@
 # === Default Target ===
 default:
 	$(MAKE) clean
+	$(MAKE) all
 	$(MAKE) flash
-	$(MAKE) clean
-
+    
 # === Configuration ===
 MCU = atmega328p
 F_CPU = 16000000UL
@@ -22,12 +22,14 @@ else
         $(error Unsupported OS)
     endif
 endif
+
 # === OS-Specific Configuration ===
 ifeq ($(HOST_OS),windows)
     PORT := COM19
     TOOLCHAIN_DIR := ../../avr8-gnu-toolchain-win32_x86_64
     CC := $(TOOLCHAIN_DIR)/bin/avr-gcc.exe
     OBJCOPY := $(TOOLCHAIN_DIR)/bin/avr-objcopy.exe
+    OBJDUMP := $(TOOLCHAIN_DIR)/bin/avr-objdump.exe
     AVRDUDE := ../../avrdude-v8.1-windows-x64/avrdude.exe
     MKDIR = if not exist $(subst /,\,$1) mkdir $(subst /,\,$1)
     RM = del /Q
@@ -38,6 +40,7 @@ else ifeq ($(HOST_OS),linux)
     TOOLCHAIN_DIR := ../../avr8-gnu-toolchain-linux_x86_64
     CC := $(TOOLCHAIN_DIR)/bin/avr-gcc
     OBJCOPY := $(TOOLCHAIN_DIR)/bin/avr-objcopy
+    OBJDUMP := $(TOOLCHAIN_DIR)/bin/avr-objdump
     AVRDUDE := avrdude
     MKDIR = mkdir -p $1
     RM = rm -f
@@ -48,6 +51,7 @@ else ifeq ($(HOST_OS),macos)
     TOOLCHAIN_DIR := ../../avr8-gnu-toolchain-darwin_universal
     CC := $(TOOLCHAIN_DIR)/bin/avr-gcc
     OBJCOPY := $(TOOLCHAIN_DIR)/bin/avr-objcopy
+    OBJDUMP := $(TOOLCHAIN_DIR)/bin/avr-objdump
     AVRDUDE := avrdude
     MKDIR = mkdir -p $1
     RM = rm -f
@@ -68,14 +72,16 @@ INCLUDES = -I$(LIB_DIR)
 BUILD_DIR := build
 ELF := $(BUILD_DIR)/$(TARGET).elf
 HEX := $(BUILD_DIR)/$(TARGET).hex
+LST := $(BUILD_DIR)/$(TARGET).lst
+MAP := $(BUILD_DIR)/$(TARGET).map
 LINKER_SCRIPT := linker.ld
 
 # === Compilation Flags ===
 CFLAGS = -mmcu=$(MCU) -DF_CPU=$(F_CPU) -Os -std=gnu11 -Wall -Wextra -ffreestanding -nostdlib -nostartfiles $(INCLUDES)
-LDFLAGS = -mmcu=$(MCU) -Wl,-T$(LINKER_SCRIPT) -Wl,--gc-sections
+LDFLAGS = -mmcu=$(MCU) -Wl,-T$(LINKER_SCRIPT) -Wl,--gc-sections -Wl,-Map=$(MAP)
 
 # === Targets ===
-all: $(HEX)
+all: $(HEX) $(LST)
 
 $(BUILD_DIR):
 	@$(call MKDIR,$@)
@@ -85,6 +91,13 @@ $(ELF): $(SRC) | $(BUILD_DIR)
 
 $(HEX): $(ELF)
 	$(OBJCOPY) -O ihex -R .eeprom $< $@
+
+$(LST): $(ELF)
+ifeq ($(HOST_OS),windows)
+	@powershell -Command "& { & '$(OBJDUMP)' -d -S '$(ELF)' | Out-File -Encoding ASCII '$(LST)' }"
+else
+	$(OBJDUMP) -d -S $< > $@
+endif
 
 # === Flash ===
 flash: $(HEX)
