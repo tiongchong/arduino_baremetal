@@ -20,6 +20,10 @@ https://cookierobotics.com/043/
 https://www.sharetechnote.com/html/Arduino_BasicInfo.html
 
 
+AVR® Instruction Set Manual
+
+https://ww1.microchip.com/downloads/aemDocuments/documents/MCU08/ProductDocuments/ReferenceManuals/AVR-InstructionSet-Manual-DS40002198.pdf
+
 ## to compile the project and flash using cmake build system
 - cmake -S . -B build -G Ninja -D CMAKE_TOOLCHAIN_FILE="avr-toolchain.cmake"
 - cmake --build build --clean-first
