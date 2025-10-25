@@ -2,7 +2,6 @@
 default:
 	$(MAKE) clean
 	$(MAKE) flash
-	$(MAKE) clean
 
 # === Configuration ===
 MCU = atmega328p
@@ -57,6 +56,10 @@ endif
 
 # === Compilation Flags ===
 CFLAGS = -mmcu=$(MCU) -DF_CPU=$(F_CPU) -Os
+# For listing
+ASMFLAGS = -Wa,-adhln=$(BUILD_DIR)/$(TARGET).lst
+# For map file
+LDFLAGS = -Wl,-Map=$(BUILD_DIR)/$(TARGET).map
 
 # === File Targets ===
 TARGET = $(notdir $(CURDIR))
@@ -64,6 +67,8 @@ SRC := $(wildcard src/**/*.c) $(wildcard src/*.c) $(wildcard *.c)
 BUILD_DIR := build
 ELF := $(BUILD_DIR)/$(TARGET).elf
 HEX := $(BUILD_DIR)/$(TARGET).hex
+LST := $(BUILD_DIR)/$(TARGET).lst
+MAP := $(BUILD_DIR)/$(TARGET).map
 
 # === Default Target ===
 all: $(HEX)
@@ -73,7 +78,7 @@ $(BUILD_DIR):
 	@$(call MKDIR,$@)
 
 $(ELF): $(SRC) | $(BUILD_DIR)
-	$(CC) $(CFLAGS) -o $@ $^
+	$(CC) $(CFLAGS) $(ASMFLAGS) -o $@ $^ $(LDFLAGS)
 
 $(HEX): $(ELF)
 	$(OBJCOPY) -O ihex -R .eeprom $< $@
