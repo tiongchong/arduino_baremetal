@@ -270,7 +270,7 @@ int main(void) {
     // --- Test Cases ---
     uart_printf("Char: %c, String: %s\n", 'A', "Hello World");
     uart_printf("Int: %+05d, UInt: %u\n", -123, 456);
-    long big_num = 1234567890L;
+    long big_num = 2147483648L;
     uart_printf("Long: %ld\n", big_num);
     int val = 255;
     uart_printf("Hex: %#x, Octal: %#o, Pointer: %p\n", val, val, &val);

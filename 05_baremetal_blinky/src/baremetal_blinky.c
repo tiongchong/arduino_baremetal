@@ -41,7 +41,7 @@ void delay_ms(uint16_t ms) {
 // - PB5 corresponds to the physical pin connected to the onboard LED on Arduino Uno and compatible boards.
 // - Direct register manipulation provides fast and efficient I/O control.
 //
-void main(void) {
+int main(void) {
     // Configure PB5 pin as output:
     // DDRB (Data Direction Register for port B) controls pin direction:
     // - Setting a bit to 1 configures the pin as output.
@@ -57,4 +57,5 @@ void main(void) {
         // Wait approximately 500 ms to make the toggle visible to human eye
         delay_ms(500);
     }
+    return 0;
 }

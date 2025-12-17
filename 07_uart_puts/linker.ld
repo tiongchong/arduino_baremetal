@@ -1,67 +1,59 @@
-/* ATmega328P Linker Script
- * Flash (program memory):  0x0000 - 0x7FFF (32 KB)
- * SRAM  (data memory):     0x0100 - 0x08FF (2 KB)
- */
+/* AVR linker script (ATmega328P style) */
 
 MEMORY
 {
-    text   (rx)  : ORIGIN = 0x0000, LENGTH = 32K
-    data   (rw!x): ORIGIN = 0x0100, LENGTH = 2K
+  FLASH (rx)  : ORIGIN = 0x000000, LENGTH = 32K
+  SRAM  (rw!x): ORIGIN = 0x800100, LENGTH = 2K
 }
 
-/* Entry point: Reset handler defined in startup code */
+/* Default entry point */
 ENTRY(__vectors)
 
 SECTIONS
 {
-    /* --------------------------------------------------------------------
-     * FLASH SECTION (code + constants)
-     * ------------------------------------------------------------------*/
-    .text :
-    {
-        KEEP(*(.vectors))        /* interrupt vector table */
-        *(.text*)                /* program code */
-        *(.rodata*)              /* read-only data */
-        *(.progmem*)             /* AVR GCC puts PROGMEM here */
-        _etext = .;              /* end of text */
-    } > text
+  /* Interrupt vectors */
+  .vectors :
+  {
+    KEEP(*(.vectors))
+  } > FLASH
 
-    /* --------------------------------------------------------------------
-     * DATA SECTION (flash → sram)
-     * ------------------------------------------------------------------*/
-    .data :
-    {
-        _data_start = .;
-        *(.data*)                /* initialized variables */
-        _data_end = .;
-    } > data AT > text  /* load in flash, run in sram */
+  /* Program code */
+  .text :
+  {
+    *(.text*)
+    *(.progmem*)
+    *(.init*)
+    *(.fini*)
+    KEEP(*(.ctors))
+    KEEP(*(.dtors))
+  } > FLASH
 
-    /* Symbols for copying ROM→RAM */
-    _data_load_start = LOADADDR(.data);
-    _data_load_end   = LOADADDR(.data) + SIZEOF(.data);
+  /* Read-only data in flash */
+  .rodata :
+  {
+    *(.rodata*)
+  } > FLASH
 
-    /* --------------------------------------------------------------------
-     * BSS SECTION (zero-init in SRAM)
-     * ------------------------------------------------------------------*/
-    .bss (NOLOAD) :
-    {
-        _bss_start = .;
-        *(.bss*)
-        *(COMMON)
-        _bss_end = .;
-    } > data
+  /* Initialized data (copied to SRAM) */
+  .data : AT (ADDR(.text) + SIZEOF(.text))
+  {
+    __data_start = .;
+    *(.data*)
+    __data_end = .;
+  } > SRAM
 
-    /* --------------------------------------------------------------------
-     * NOINIT SECTION (not initialized on reset)
-     * ------------------------------------------------------------------*/
-    .noinit (NOLOAD) :
-    {
-        *(.noinit*)
-    } > data
+  __data_load_start = LOADADDR(.data);
 
-    /* --------------------------------------------------------------------
-     * END OF RAM (for stack pointer)
-     * ------------------------------------------------------------------*/
-    _end = .;
-    PROVIDE(__stack = ORIGIN(data) + LENGTH(data) - 1);
+  /* Zero-initialized data */
+  .bss :
+  {
+    __bss_start = .;
+    *(.bss*)
+    *(COMMON)
+    __bss_end = .;
+  } > SRAM
+
+  /* Heap & stack symbols */
+  __heap_start = __bss_end;
+  __stack_top  = ORIGIN(SRAM) + LENGTH(SRAM);
 }

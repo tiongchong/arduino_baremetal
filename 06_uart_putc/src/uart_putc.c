@@ -3,7 +3,7 @@
 // UART INIT / PUTCHAR FOR printf 
 // ----------------------------------------------------------------------------- 
 #define F_CPU 16000000UL // adjust based on actual clock 
-#define BAUD 9600 
+#define BAUD 57600 
 #define UBRR_VALUE ((F_CPU / 16 / BAUD) - 1) 
 
 void uart_init(void) { 
