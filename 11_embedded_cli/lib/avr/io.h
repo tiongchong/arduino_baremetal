@@ -1,7 +1,7 @@
 #ifndef IO_H
 #define IO_H
 
-#include <stdint.h>  // Include standard integer types for fixed width integers
+#include "stdint.h"  // Include standard integer types for fixed width integers
 
 // -----------------------------------------------------------------------------
 // Register I/O macros

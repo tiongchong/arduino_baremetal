@@ -1,5 +1,6 @@
 #include "avr/io.h"
 #include "uart.h"
+#include "std/pgmspace.h"
 
 // --- UART init / putchar ---
 void uart_init(void) {

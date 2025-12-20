@@ -45,20 +45,57 @@ set(BUILD_DIR ${CMAKE_BINARY_DIR}/build)
 file(MAKE_DIRECTORY ${BUILD_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${BUILD_DIR})
 
+# === Include directories ===
+set(INCLUDE_DIRS
+    ${CMAKE_SOURCE_DIR}/lib/avr
+    ${CMAKE_SOURCE_DIR}/lib/std
+    ${CMAKE_SOURCE_DIR}/lib
+    ${CMAKE_SOURCE_DIR}/drivers/include
+    ${CMAKE_SOURCE_DIR}/sys/include
+    ${CMAKE_SOURCE_DIR}/lib/embedded_cli
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+# Convert include dirs to -I flags
+set(INCLUDE_FLAGS "")
+foreach(DIR ${INCLUDE_DIRS})
+    set(INCLUDE_FLAGS "${INCLUDE_FLAGS} -I${DIR}")
+endforeach()
+
 # === Sources ===
-file(GLOB SRC_C "${CMAKE_SOURCE_DIR}/src/*.c")
+# Main application sources
+file(GLOB SRC_MAIN "${CMAKE_SOURCE_DIR}/src/*.c")
 file(GLOB SRC_S "${CMAKE_SOURCE_DIR}/src/*.S")
-list(REMOVE_ITEM SRC_S "${CMAKE_SOURCE_DIR}/src/crt0.S")
-set(CRT0_SRC "${CMAKE_SOURCE_DIR}/src/crt0.S")
+list(REMOVE_ITEM SRC_S "${CMAKE_SOURCE_DIR}/src/core/crt0.S")
+set(CRT0_SRC "${CMAKE_SOURCE_DIR}/src/core/crt0.S")
+
+# System sources (stdio, etc.)
+file(GLOB SRC_SYS "${CMAKE_SOURCE_DIR}/sys/src/*.c")
+
+# Driver sources
+file(GLOB SRC_DRIVERS "${CMAKE_SOURCE_DIR}/drivers/src/*/*.c")
+file(GLOB SRC_DRIVERS_DIRECT "${CMAKE_SOURCE_DIR}/drivers/src/*.c")
+
+# Standard library sources
+file(GLOB SRC_STD "${CMAKE_SOURCE_DIR}/lib/std/*.c")
+
+# Embedded CLI sources (submodule)
+file(GLOB SRC_EMBEDDED_CLI "${CMAKE_SOURCE_DIR}/lib/embedded_cli/src/*.c")
+
+# Combine all C sources
+set(SRC_C ${SRC_MAIN} ${SRC_SYS} ${SRC_DRIVERS} ${SRC_DRIVERS_DIRECT} ${SRC_STD} ${SRC_EMBEDDED_CLI})
 
 # Create object targets for C sources
 set(OBJ_C "")
 foreach(SRC ${SRC_C})
     get_filename_component(FNAME ${SRC} NAME_WE)
-    set(OBJ ${BUILD_DIR}/${FNAME}.o)
+    get_filename_component(DIR ${SRC} DIRECTORY)
+    file(RELATIVE_PATH REL_DIR ${CMAKE_SOURCE_DIR} ${DIR})
+    string(REPLACE "/" "_" OBJ_NAME "${REL_DIR}_${FNAME}")
+    set(OBJ ${BUILD_DIR}/${OBJ_NAME}.o)
     add_custom_command(
         OUTPUT ${OBJ}
-        COMMAND ${GCC} -mmcu=${MCU} -DF_CPU=${F_CPU} -Os -Wall -Wextra -ffunction-sections -fdata-sections -nostdlib -nostartfiles -I${CMAKE_SOURCE_DIR}/lib/avr -c ${SRC} -o ${OBJ}
+        COMMAND ${GCC} -mmcu=${MCU} -DF_CPU=${F_CPU} -Os -Wall -Wextra -ffunction-sections -fdata-sections -nostdlib -nostartfiles ${INCLUDE_FLAGS} -c ${SRC} -o ${OBJ}
         DEPENDS ${SRC}
     )
     list(APPEND OBJ_C ${OBJ})
@@ -68,21 +105,23 @@ endforeach()
 set(OBJ_S "")
 foreach(SRC ${SRC_S})
     get_filename_component(FNAME ${SRC} NAME_WE)
-    set(OBJ ${BUILD_DIR}/${FNAME}.o)
+    get_filename_component(DIR ${SRC} DIRECTORY)
+    file(RELATIVE_PATH REL_DIR ${CMAKE_SOURCE_DIR} ${DIR})
+    string(REPLACE "/" "_" OBJ_NAME "${REL_DIR}_${FNAME}")
+    set(OBJ ${BUILD_DIR}/${OBJ_NAME}.o)
     add_custom_command(
         OUTPUT ${OBJ}
-        COMMAND ${GCC} -mmcu=${MCU} -DF_CPU=${F_CPU} -Os -Wall -ffunction-sections -fdata-sections -nostdlib -c ${SRC} -o ${OBJ}
+        COMMAND ${GCC} -mmcu=${MCU} -DF_CPU=${F_CPU} -Os -Wall -ffunction-sections -fdata-sections -nostdlib ${INCLUDE_FLAGS} -c ${SRC} -o ${OBJ}
         DEPENDS ${SRC}
     )
     list(APPEND OBJ_S ${OBJ})
 endforeach()
 
 # Compile CRT0 separately
-set(CRT0_SRC "${CMAKE_SOURCE_DIR}/src/crt0.S")
 set(CRT0_OBJ "${BUILD_DIR}/crt0.o")
 add_custom_command(
     OUTPUT ${CRT0_OBJ}
-    COMMAND ${GCC} -mmcu=${MCU} -DF_CPU=${F_CPU} -Os -Wall -ffunction-sections -fdata-sections -nostdlib -c ${CRT0_SRC} -o ${CRT0_OBJ}
+    COMMAND ${GCC} -mmcu=${MCU} -DF_CPU=${F_CPU} -Os -Wall -ffunction-sections -fdata-sections -nostdlib ${INCLUDE_FLAGS} -c ${CRT0_SRC} -o ${CRT0_OBJ}
     DEPENDS ${CRT0_SRC}
 )
 

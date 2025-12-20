@@ -3,9 +3,8 @@
 
 #include "avr/io.h"
 #include "config.h"
-
-#include <stdbool.h>
-#include <avr/pgmspace.h>
+#include "stdbool.h"
+#include "pgmspace.h"
 
 #define BAUD 57600
 #define UBRR_VALUE ((F_CPU / (16UL * BAUD)) - 1)

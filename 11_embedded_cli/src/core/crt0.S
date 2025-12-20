@@ -1,6 +1,6 @@
 /* crt0.S – AVR startup */
 
-#include <avr/io.h>
+#include "avr/io.h"
 
 .section .vectors, "ax", @progbits
 .global __vectors

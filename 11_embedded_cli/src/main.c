@@ -1,5 +1,7 @@
 #include "stdio.h"
-#include <stddef.h>
+#include "stddef.h"
+#include "uart.h"
+#include "output.h"
 
 #define EMBEDDED_CLI_IMPL
 #include "embedded_cli.h"
@@ -29,6 +31,10 @@ void onAdc(EmbeddedCli *cli, char *args, void *context);
 // --- Main program ---
 int main(void) {
     uart_init();
+    
+    // Set printf output to UART
+    // Later, this can be changed to vga_putc for VGA output
+    output_set_putc(uart_putc);
 
     EmbeddedCliConfig *config = embeddedCliDefaultConfig();
     config->cliBuffer = cliBuffer;
