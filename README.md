@@ -33,8 +33,11 @@ or
 - cmake --build build --clean-first
 - cmake --build build --target flash
 
-## to compile the project using make build system
+## to compile the project using make build system (default : avr-gcc)
 - make
+
+or change to use llvm
+- make TOOLCHAIN=clang 
 
 ## progress log
 2025/10/18

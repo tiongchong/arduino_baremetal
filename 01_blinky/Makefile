@@ -1,3 +1,7 @@
+# === Toolchain Selection ===
+# Options: gcc (default), clang
+TOOLCHAIN ?= gcc
+
 # === Default Target ===
 default:
 	$(MAKE) clean
@@ -23,6 +27,7 @@ else
 endif
 
 # === OS-Specific Configuration ===
+# === OS-Specific Configuration ===
 ifeq ($(HOST_OS),windows)
     PORT := COM19
     TOOLCHAIN_DIR := ../../avr8-gnu-toolchain-win32_x86_64
@@ -45,25 +50,64 @@ else ifeq ($(HOST_OS),linux)
 
 else ifeq ($(HOST_OS),macos)
     PORT := /dev/tty.usbserial-1420
-    TOOLCHAIN_DIR := ../../avr8-gnu-toolchain-darwin_universal
-    CC := $(TOOLCHAIN_DIR)/bin/avr-gcc
-    OBJCOPY := $(TOOLCHAIN_DIR)/bin/avr-objcopy
     AVRDUDE := avrdude
     MKDIR = mkdir -p $1
     RM = rm -f
     RM_FILE = $1
+
+    # --- GNU AVR toolchain (default) ---
+    GCC_TOOLCHAIN_DIR := ../../avr8-gnu-toolchain-darwin_universal
+
+    # --- LLVM AVR toolchain ---
+    LLVM_TOOLCHAIN_DIR := ../../llvm-avr/bin
+
+    ifeq ($(TOOLCHAIN),clang)
+        CC := $(LLVM_TOOLCHAIN_DIR)/clang
+        OBJCOPY := $(LLVM_TOOLCHAIN_DIR)/llvm-objcopy
+        LD := $(LLVM_TOOLCHAIN_DIR)/ld.lld
+    else
+        CC := $(GCC_TOOLCHAIN_DIR)/bin/avr-gcc
+        OBJCOPY := $(GCC_TOOLCHAIN_DIR)/bin/avr-objcopy
+    endif
 endif
 
-# === Compilation Flags ===
-CFLAGS = -mmcu=$(MCU) -DF_CPU=$(F_CPU) -Os
-# For listing
-ASMFLAGS = -Wa,-adhln=$(BUILD_DIR)/$(TARGET).lst
-# For map file
-LDFLAGS = -Wl,-Map=$(BUILD_DIR)/$(TARGET).map
+
+# === Source Files ===
+SRC_ALL := $(wildcard src/**/*.c) $(wildcard src/*.c) $(wildcard *.c)
+
+# === Common Compilation Flags ===
+COMMON_FLAGS = -mmcu=$(MCU) -DF_CPU=$(F_CPU) -Os
+AVR_LIBC_INC := ../../avr8-gnu-toolchain-darwin_universal/avr/include
+LDSCRIPT := $(CURDIR)/linker.ld
+
+# === Toolchain-Specific Flags ===
+ifeq ($(TOOLCHAIN),clang)
+    CC := ../../llvm-avr/bin/clang
+    LD := ../../avr8-gnu-toolchain-darwin_universal/bin/avr-gcc
+    SRC := $(SRC_ALL)
+    ASMFLAGS =
+    CFLAGS = $(COMMON_FLAGS) \
+             --target=avr \
+             -ffreestanding \
+             -fno-exceptions \
+             -fno-rtti \
+             -nostdlib \
+             -I $(AVR_LIBC_INC)
+    LDFLAGS = \
+        -Wl,-T,$(LDSCRIPT) \
+        -Wl,-Map=$(BUILD_DIR)/$(TARGET).map \
+        -fuse-ld=lld
+else
+    SRC := $(filter-out %/crt0.c %/vectors.c,$(SRC_ALL))
+    ASMFLAGS = -Wa,-adhln=$(BUILD_DIR)/$(TARGET).lst
+    CFLAGS = $(COMMON_FLAGS)
+    LDFLAGS = -Wl,-Map=$(BUILD_DIR)/$(TARGET).map
+endif
+
 
 # === File Targets ===
 TARGET = $(notdir $(CURDIR))
-SRC := $(wildcard src/**/*.c) $(wildcard src/*.c) $(wildcard *.c)
+
 BUILD_DIR := build
 ELF := $(BUILD_DIR)/$(TARGET).elf
 HEX := $(BUILD_DIR)/$(TARGET).hex
