@@ -1,7 +1,7 @@
-void app_main(void);
+int main(void);
 
 void reset_handler(void)
 {
-    app_main();
+    main();
     for (;;);
 }

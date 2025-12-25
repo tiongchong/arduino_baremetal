@@ -13,11 +13,7 @@ static void delay_cycles(unsigned long cycles)
     }
 }
 
-#if defined(__clang__)
-int app_main(void)
-#else
 int main(void)
-#endif
 {
     // Set pin 5 of PORTB (digital pin 13 on Arduino Uno) as output
     DDRB |= (1 << DDB5);
