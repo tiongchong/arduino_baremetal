@@ -26,9 +26,13 @@ https://ww1.microchip.com/downloads/aemDocuments/documents/MCU08/ProductDocument
 
 ## to compile the project and flash using cmake build system
 - cmake -S . -B build -G Ninja -D CMAKE_TOOLCHAIN_FILE="avr-toolchain.cmake"
+(choose to use LLVM instead of avr-gcc)
+- cmake -S . -B build -DTOOLCHAIN=clang -G Ninja -D CMAKE_TOOLCHAIN_FILE="avr-toolchain.cmake"
 
 or
 - cmake -S . -B build -G "Unix Makefiles" -D CMAKE_TOOLCHAIN_FILE="avr-toolchain.cmake"
+(choose to use LLVM instead of avr-gcc)
+- cmake -S . -B build -DTOOLCHAIN=clang -G "Unix Makefiles" -D CMAKE_TOOLCHAIN_FILE="avr-toolchain.cmake"
 
 - cmake --build build --clean-first
 - cmake --build build --target flash
