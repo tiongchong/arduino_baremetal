@@ -5,6 +5,7 @@ TOOLCHAIN ?= gcc
 # === Default Target ===
 default:
 	$(MAKE) clean
+	$(MAKE) all
 	$(MAKE) flash
 
 # === Configuration ===
@@ -27,7 +28,6 @@ else
 endif
 
 # === OS-Specific Configuration ===
-# === OS-Specific Configuration ===
 ifeq ($(HOST_OS),windows)
     PORT := COM19
     TOOLCHAIN_DIR := ../../avr8-gnu-toolchain-win32_x86_64
@@ -40,9 +40,26 @@ ifeq ($(HOST_OS),windows)
 
 else ifeq ($(HOST_OS),linux)
     PORT := /dev/ttyUSB0
-    TOOLCHAIN_DIR := ../../avr8-gnu-toolchain-linux_x86_64
-    CC := $(TOOLCHAIN_DIR)/bin/avr-gcc
-    OBJCOPY := $(TOOLCHAIN_DIR)/bin/avr-objcopy
+
+    AVR_LIBC_INC := ../../avr8-gnu-toolchain-linux_x86_64/avr/include
+
+    # --- GNU AVR toolchain (default) ---
+    GCC_TOOLCHAIN_DIR := ../../avr8-gnu-toolchain-linux_x86_64
+
+    # --- LLVM AVR toolchain ---
+    LLVM_TOOLCHAIN_DIR := ../../llvm-avr/bin
+
+    ifeq ($(TOOLCHAIN),clang)
+        CC := $(LLVM_TOOLCHAIN_DIR)/clang
+        OBJCOPY := $(LLVM_TOOLCHAIN_DIR)/llvm-objcopy
+        OBJDUMP := $(LLVM_TOOLCHAIN_DIR)/llvm-objdump
+        LD := $(GCC_TOOLCHAIN_DIR)/bin/avr-gcc    # Using GCC for linking is safer for crt/libs
+    else
+        CC := $(GCC_TOOLCHAIN_DIR)/bin/avr-gcc
+        OBJCOPY := $(GCC_TOOLCHAIN_DIR)/bin/avr-objcopy
+        OBJDUMP := $(GCC_TOOLCHAIN_DIR)/bin/avr-objdump
+    endif
+
     AVRDUDE := avrdude
     MKDIR = mkdir -p $1
     RM = rm -f
@@ -50,10 +67,8 @@ else ifeq ($(HOST_OS),linux)
 
 else ifeq ($(HOST_OS),macos)
     PORT := /dev/tty.usbserial-1420
-    AVRDUDE := avrdude
-    MKDIR = mkdir -p $1
-    RM = rm -f
-    RM_FILE = $1
+
+    AVR_LIBC_INC := ../../avr8-gnu-toolchain-darwin_universal/avr/include
 
     # --- GNU AVR toolchain (default) ---
     GCC_TOOLCHAIN_DIR := ../../avr8-gnu-toolchain-darwin_universal
@@ -64,11 +79,18 @@ else ifeq ($(HOST_OS),macos)
     ifeq ($(TOOLCHAIN),clang)
         CC := $(LLVM_TOOLCHAIN_DIR)/clang
         OBJCOPY := $(LLVM_TOOLCHAIN_DIR)/llvm-objcopy
-        LD := $(LLVM_TOOLCHAIN_DIR)/ld.lld
+        OBJDUMP := $(LLVM_TOOLCHAIN_DIR)/llvm-objdump
+        LD := $(GCC_TOOLCHAIN_DIR)/bin/avr-gcc    # Using GCC for linking is safer for crt/libs
     else
         CC := $(GCC_TOOLCHAIN_DIR)/bin/avr-gcc
         OBJCOPY := $(GCC_TOOLCHAIN_DIR)/bin/avr-objcopy
+        OBJDUMP := $(GCC_TOOLCHAIN_DIR)/bin/avr-objdump
     endif
+
+    AVRDUDE := avrdude
+    MKDIR = mkdir -p $1
+    RM = rm -f
+    RM_FILE = $1
 endif
 
 
@@ -77,13 +99,10 @@ SRC_ALL := $(wildcard src/**/*.c) $(wildcard src/*.c) $(wildcard *.c)
 
 # === Common Compilation Flags ===
 COMMON_FLAGS = -mmcu=$(MCU) -DF_CPU=$(F_CPU) -Os
-AVR_LIBC_INC := ../../avr8-gnu-toolchain-darwin_universal/avr/include
 LDSCRIPT := $(CURDIR)/linker.ld
 
 # === Toolchain-Specific Flags ===
 ifeq ($(TOOLCHAIN),clang)
-    CC := ../../llvm-avr/bin/clang
-    LD := ../../avr8-gnu-toolchain-darwin_universal/bin/avr-gcc
     SRC := $(SRC_ALL)
     ASMFLAGS =
     CFLAGS = $(COMMON_FLAGS) \
@@ -114,12 +133,23 @@ HEX := $(BUILD_DIR)/$(TARGET).hex
 LST := $(BUILD_DIR)/$(TARGET).lst
 MAP := $(BUILD_DIR)/$(TARGET).map
 
-# === Default Target ===
+# === All Target ===
+ifeq ($(TOOLCHAIN),clang)
+all: $(HEX) $(LST)
+else
 all: $(HEX)
+endif
 
 # === Build Rules ===
 $(BUILD_DIR):
 	@$(call MKDIR,$@)
+
+$(LST): $(ELF) | $(BUILD_DIR)
+ifeq ($(TOOLCHAIN),clang)
+	$(OBJDUMP) -d -S --demangle $< > $@
+else
+	@echo "LST file generated during compilation for GCC toolchain"
+endif
 
 $(ELF): $(SRC) | $(BUILD_DIR)
 	$(CC) $(CFLAGS) $(ASMFLAGS) -o $@ $^ $(LDFLAGS)
