@@ -120,7 +120,9 @@ else
     SRC := $(filter-out %/crt0.c %/vectors.c,$(SRC_ALL))
     ASMFLAGS = -Wa,-adhln=$(BUILD_DIR)/$(TARGET).lst
     CFLAGS = $(COMMON_FLAGS)
-    LDFLAGS = -Wl,-Map=$(BUILD_DIR)/$(TARGET).map
+    LDFLAGS = \
+        -Wl,-T,$(LDSCRIPT) \
+        -Wl,-Map=$(BUILD_DIR)/$(TARGET).map
 endif
 
 
