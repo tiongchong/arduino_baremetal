@@ -43,17 +43,14 @@ else ifeq ($(HOST_OS),linux)
 
     AVR_LIBC_INC := ../../avr8-gnu-toolchain-linux_x86_64/avr/include
 
-    # --- GNU AVR toolchain (default) ---
     GCC_TOOLCHAIN_DIR := ../../avr8-gnu-toolchain-linux_x86_64
-
-    # --- LLVM AVR toolchain ---
     LLVM_TOOLCHAIN_DIR := ../../llvm-avr/bin
 
     ifeq ($(TOOLCHAIN),clang)
         CC := $(LLVM_TOOLCHAIN_DIR)/clang
         OBJCOPY := $(LLVM_TOOLCHAIN_DIR)/llvm-objcopy
         OBJDUMP := $(LLVM_TOOLCHAIN_DIR)/llvm-objdump
-        LD := $(GCC_TOOLCHAIN_DIR)/bin/avr-gcc    # Using GCC for linking is safer for crt/libs
+        LD := $(GCC_TOOLCHAIN_DIR)/bin/avr-gcc
     else
         CC := $(GCC_TOOLCHAIN_DIR)/bin/avr-gcc
         OBJCOPY := $(GCC_TOOLCHAIN_DIR)/bin/avr-objcopy
@@ -70,17 +67,14 @@ else ifeq ($(HOST_OS),macos)
 
     AVR_LIBC_INC := ../../avr8-gnu-toolchain-darwin_universal/avr/include
 
-    # --- GNU AVR toolchain (default) ---
     GCC_TOOLCHAIN_DIR := ../../avr8-gnu-toolchain-darwin_universal
-
-    # --- LLVM AVR toolchain ---
     LLVM_TOOLCHAIN_DIR := ../../llvm-avr/bin
 
     ifeq ($(TOOLCHAIN),clang)
         CC := $(LLVM_TOOLCHAIN_DIR)/clang
         OBJCOPY := $(LLVM_TOOLCHAIN_DIR)/llvm-objcopy
         OBJDUMP := $(LLVM_TOOLCHAIN_DIR)/llvm-objdump
-        LD := $(GCC_TOOLCHAIN_DIR)/bin/avr-gcc    # Using GCC for linking is safer for crt/libs
+        LD := $(GCC_TOOLCHAIN_DIR)/bin/avr-gcc
     else
         CC := $(GCC_TOOLCHAIN_DIR)/bin/avr-gcc
         OBJCOPY := $(GCC_TOOLCHAIN_DIR)/bin/avr-objcopy
@@ -93,38 +87,42 @@ else ifeq ($(HOST_OS),macos)
     RM_FILE = $1
 endif
 
-
 # === Source Files ===
 SRC_ALL := $(wildcard src/**/*.c) $(wildcard src/*.c) $(wildcard *.c)
 
 # === Common Compilation Flags ===
-COMMON_FLAGS = -mmcu=$(MCU) -DF_CPU=$(F_CPU) -Os
+COMMON_FLAGS = -DF_CPU=$(F_CPU) -Os
 LDSCRIPT := $(CURDIR)/linker.ld
 
 # === Toolchain-Specific Flags ===
 ifeq ($(TOOLCHAIN),clang)
     SRC := $(SRC_ALL)
-    ASMFLAGS =
-    CFLAGS = $(COMMON_FLAGS) \
-             --target=avr \
-             -ffreestanding \
-             -fno-exceptions \
-             -fno-rtti \
-             -nostdlib \
-             -I $(AVR_LIBC_INC)
+
+    ASMFLAGS :=                     # FIX: must be empty for clang
+
+    CFLAGS = \
+            --target=avr \
+            -mmcu=$(MCU) \
+            $(COMMON_FLAGS) \
+            -ffreestanding \
+            -fno-exceptions \
+            -fno-rtti \
+            -nostdlib \
+            -B$(GCC_TOOLCHAIN_DIR)/bin \
+            -I $(AVR_LIBC_INC)
+
     LDFLAGS = \
         -Wl,-T,$(LDSCRIPT) \
-        -Wl,-Map=$(BUILD_DIR)/$(TARGET).map \
-        -fuse-ld=lld
+        -Wl,-Map=$(BUILD_DIR)/$(TARGET).map
+
 else
     SRC := $(filter-out %/crt0.c %/vectors.c,$(SRC_ALL))
     ASMFLAGS = -Wa,-adhln=$(BUILD_DIR)/$(TARGET).lst
-    CFLAGS = $(COMMON_FLAGS)
+    CFLAGS = $(COMMON_FLAGS) -mmcu=$(MCU)
     LDFLAGS = \
         -Wl,-T,$(LDSCRIPT) \
         -Wl,-Map=$(BUILD_DIR)/$(TARGET).map
 endif
-
 
 # === File Targets ===
 TARGET = $(notdir $(CURDIR))
@@ -148,7 +146,7 @@ $(BUILD_DIR):
 
 $(LST): $(ELF) | $(BUILD_DIR)
 ifeq ($(TOOLCHAIN),clang)
-	$(OBJDUMP) -d -S --demangle $< > $@
+	$(OBJDUMP) -d -S $< > $@
 else
 	@echo "LST file generated during compilation for GCC toolchain"
 endif
